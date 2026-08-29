@@ -1,0 +1,254 @@
+# Pages CMS configuration for the Firefly blog.
+# Keep theme source and TypeScript config out of the CMS to reduce accidental
+# build failures. Edit those files locally and manage content here.
+
+media:
+  - name: content_images
+    label: 文章与动态图片
+    input: public/uploads/images
+    output: /uploads/images
+    categories: [image]
+    extensions: [avif, gif, jpeg, jpg, png, webp]
+    rename: safe
+    commit:
+      templates:
+        create: "chore(media): 上传图片 {filename}"
+        update: "chore(media): 更新图片 {filename}"
+        delete: "chore(media): 删除图片 {filename}"
+        rename: "chore(media): 重命名图片 {oldFilename} 为 {newFilename}"
+
+  - name: attachments
+    label: 文章附件
+    input: public/uploads/files
+    output: /uploads/files
+    categories: [document, audio, video, compressed]
+    rename: safe
+    commit:
+      templates:
+        create: "chore(media): 上传附件 {filename}"
+        update: "chore(media): 更新附件 {filename}"
+        delete: "chore(media): 删除附件 {filename}"
+        rename: "chore(media): 重命名附件 {oldFilename} 为 {newFilename}"
+
+settings:
+  # Hide the Pages CMS configuration editor. The file remains editable locally.
+  hide: true
+  # Preserve frontmatter keys added by Firefly or future upstream versions even
+  # when they are not represented by a field below.
+  content:
+    merge: true
+  commit:
+    identity: app
+    templates:
+      create: "content: 创建 {path}"
+      update: "content: 更新 {path}"
+      delete: "content: 删除 {path}"
+      rename: "content: 重命名 {oldPath} 为 {newPath}"
+
+content:
+  - name: blog_content
+    label: 博客内容
+    type: group
+    items:
+      - name: posts
+        label: 文章
+        type: collection
+        path: src/content/posts
+        format: yaml-frontmatter
+        subfolders: true
+        # The existing MDX example contains JSX. Keep it out of the rich-text
+        # editor because a WYSIWYG save could damage unsupported MDX syntax.
+        exclude:
+          - mdx-example.mdx
+        filename:
+          template: "{year}-{month}-{day}-{primary}.md"
+          field: create
+        view:
+          fields: [title, published, draft, category, pinned]
+          primary: title
+          sort: [published, updated, title, category]
+          search: [title, description, tags, category, series, author]
+          default:
+            sort: published
+            order: desc
+        operations:
+          create: true
+          rename: true
+          # Prevent one-click destructive deletion in the web UI. Delete posts
+          # through Git locally after reviewing the exact target.
+          delete: false
+        fields:
+          - name: title
+            label: 标题
+            type: string
+            required: true
+            description: 文章列表、浏览器标题和搜索结果中显示的标题。
+
+          - name: published
+            label: 发布时间
+            type: date
+            required: true
+            options:
+              format: yyyy-MM-dd
+
+          - name: updated
+            label: 更新时间
+            type: date
+            default: ""
+            options:
+              format: yyyy-MM-dd
+            description: 没有实质更新时可以留空。
+
+          - name: draft
+            label: 草稿
+            type: boolean
+            default: true
+            description: 新文章建议保持开启，确认内容无误后再关闭并发布。
+
+          - name: description
+            label: 摘要
+            type: text
+            description: 用于文章卡片、搜索结果和 SEO；建议用一到三句话概括。
+
+          - name: image
+            label: 封面图片
+            type: image
+            description: 可继续保留原有相对路径，也可以从 CMS 上传到 /uploads/images。
+            options:
+              media: content_images
+              extensions: [avif, gif, jpeg, jpg, png, webp]
+              rename: safe
+
+          - name: tags
+            label: 标签
+            type: string
+            list: true
+            description: 每项填写一个标签，例如 Astro、学习记录。
+
+          - name: category
+            label: 分类
+            type: string
+            description: 建议保持少量稳定分类，例如技术、生活、随笔。
+
+          - name: slug
+            label: 固定链接标识
+            type: string
+            description: 可选。建议使用小写英文、数字、短横线；子目录文章可以包含 /。
+
+          - name: lang
+            label: 文章语言
+            type: string
+            description: 可选，例如 zh_CN、en；留空时使用站点默认语言。
+
+          - name: pinned
+            label: 置顶
+            type: boolean
+            default: false
+
+          - name: comment
+            label: 允许评论
+            type: boolean
+            default: true
+
+          - name: series
+            label: 系列名称
+            type: string
+            description: 同一系列的文章必须使用完全相同的名称。
+
+          - name: seriesOrder
+            label: 系列顺序
+            type: number
+            description: 可选；数字越小越靠前。
+
+          - name: author
+            label: 作者
+            type: string
+            description: 留空时使用站点默认作者。
+
+          - name: sourceLink
+            label: 原文链接
+            type: string
+            description: 转载或同步文章的原始地址。
+
+          - name: licenseName
+            label: 许可名称
+            type: string
+            description: 留空时使用站点默认许可。
+
+          - name: licenseUrl
+            label: 许可链接
+            type: string
+
+          - name: password
+            label: 文章访问密码
+            type: string
+            description: 仅用于前端阅读限制。公开仓库能看到此值，绝不能填写真实账户密码。
+
+          - name: passwordHint
+            label: 密码提示
+            type: string
+
+          - name: body
+            label: 正文
+            type: rich-text
+            required: true
+            description: 普通内容可使用可视化编辑；Firefly 扩展语法、代码块或复杂 Markdown 建议切换到源码模式。
+            options:
+              format: markdown
+              switcher: true
+              media: content_images
+              extensions: [avif, gif, jpeg, jpg, png, webp]
+              rename: safe
+
+      - name: dynamic
+        label: 短动态
+        type: collection
+        path: src/content/dynamic
+        format: yaml-frontmatter
+        subfolders: false
+        filename:
+          template: "{year}-{month}-{day}-{hour}{minute}{second}.md"
+          field: false
+        view:
+          fields: [published, pinned, location]
+          primary: published
+          sort: [published, location]
+          search: [body, location]
+          default:
+            sort: published
+            order: desc
+        operations:
+          create: true
+          rename: false
+          delete: false
+        fields:
+          - name: published
+            label: 发布时间
+            type: date
+            required: true
+            options:
+              time: true
+              format: yyyy-MM-dd HH:mm:ss
+              step: 1
+
+          - name: pinned
+            label: 置顶
+            type: boolean
+            default: false
+
+          - name: location
+            label: 位置
+            type: string
+            description: 可选，不希望公开位置时请留空。
+
+          - name: body
+            label: 动态内容
+            type: rich-text
+            required: true
+            options:
+              format: markdown
+              switcher: true
+              media: content_images
+              extensions: [avif, gif, jpeg, jpg, png, webp]
+              rename: safe
+
